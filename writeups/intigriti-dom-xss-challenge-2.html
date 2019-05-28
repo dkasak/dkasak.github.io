@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Denis Kasak">
+  <meta name="dcterms.date" content="2019-05-28">
+  <meta name="keywords" content="security, xss, challenge">
+  <title>Solving the Intigriti 5K XSS Challenge</title>
+  <style type="text/css">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(title);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <link rel="stylesheet" href="../style/tufte.css">
+  <link rel="stylesheet" href="../style/tufte-extra.css">
+  <link rel="stylesheet" href="../style/pandoc.css">
+  <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<article>
+<header>
+<h1 class="title">Solving the Intigriti 5K XSS Challenge</h1>
+<div id="keywords">
+<span class="keyword">#security </span><span class="keyword">#xss </span><span class="keyword">#challenge </span>
+</div>
+<p class="byline">2019-05-28 &ndash; Denis Kasak</p>
+</header>
+
+<section>
+<p><a href="https://www.intigriti.com/">Intigriti</a> recently held their <a href="https://challenge.intigriti.io/2/">second DOM-based XSS challenge</a>, commemorating their milestone of 5k Twitter followers.<span><label for="sn-0" class="margin-toggle">&#8853;</label><input type="checkbox" id="sn-0" class="margin-toggle"/><span class="marginnote"> The winner is randomly selected out of all valid entries. Unfortunately for me, it wasn’t me. Congrats to <em>bincup</em>!<br />
+<br />
+</span></span></p>
+<p>The challenge was set up with a single solution in mind, but someone quickly discovered a second, unintended solution. I started hacking on this one a bit late, so I was aware of this due to the <a href="https://twitter.com/intigriti/status/1130813532465979393">second hint</a> they published.</p>
+<p>While solving this, I was set on discovering this unintended solution but apparently managed to find a <em>third</em> (also unintended) one due to a misconfiguration of their server. I decided to publish the report I submitted to them here.</p>
+<p>Unlike the other solutions, this one works without disabling HTTPS and is fully self-contained (requires no external resources set up by the attacker).</p>
+<hr />
+<section id="description" class="level2">
+<h2>Description</h2>
+<p>The endpoint <a href="https://challenge.intigriti.io/2/" class="uri">https://challenge.intigriti.io/2/</a> is vulnerable to DOM-based XSS due to unsanitized usage of URL fragment.</p>
+</section>
+<section id="proof-of-concept" class="level2">
+<h2>Proof of concept</h2>
+<pre><code>https://challenge.intigriti.io/2/;/#Zm9vIj48aW1nIHNyYz0iLyIgb25lcnJvcj0iYWxlcnQoZG9jdW1lbnQuZG9tYWluKTsiPjxociBpZD0iZm9v</code></pre>
+</section>
+<section id="analysis" class="level2">
+<h2>Analysis</h2>
+<p>The affected endpoint contains a script which interprets the content of the URL fragment as a relative URL which it loads as a <code>Blob</code> using XHR. Initially, the fragment is set to <code>aW50aWdyaXRpLWNoYWxsZW5nZQ==</code>, which resolves the request to the URL <code>https://challenge.intigriti.io/2/aW50aWdyaXRpLWNoYWxsZW5nZQ==</code>. This resource contains the image with the challenge instructions.</p>
+<p>Upon successful completion of the XHR, the contents of the response is inserted into an <code>img</code> tag using a <code>data:</code> URL using the following template:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb2-1" title="1"><span class="op">&lt;</span>a href<span class="op">=</span><span class="st">&quot;${b64img}&quot;</span> alt<span class="op">=</span><span class="st">&quot;${atob(b64img)}&quot;</span><span class="op">&gt;</span></a>
+<a class="sourceLine" id="cb2-2" title="2">    <span class="op">&lt;</span>img src<span class="op">=</span><span class="st">&quot;${reader.result}&quot;</span><span class="op">&gt;</span></a>
+<a class="sourceLine" id="cb2-3" title="3">&lt;/a<span class="op">&gt;</span></a></code></pre></div>
+<p>The instantiated version of this template is then written into the document.</p>
+<p>Crucially, the image is wrapped in an anchor tag with the <code>href</code> set to the fragment itself and <code>alt</code> set to the <em>the base64-decoded version of the fragment</em>. The original fragment decodes to the string <code>intigriti-challenge</code>.</p>
+<p>Clearly we can modify the fragment to an arbitrary valid base64 string, leading to insertion of arbitrary HTML and/or JavaScript code since the call to <code>atob(b64img)</code> is not properly escaped.</p>
+<p>However, one hurdle remains: the place where the fragment gets inserted into the DOM is inside the handler for the XHR, which checks that the request finished with status 200 OK. Therefore, the fragment, when interpreted as a URL relative to the base URL, must point to a valid resource on <code>challenge.intigriti.io</code> (due to the Same-Origin Policy).</p>
+<p>(Un)fortunately, the server mishandles semicolons: it simply ignores them and everything following them in the URL. Therefore, requesting <code>https://challenge.intigriti.io/2/;/foo#arbitrary</code> still returns the original challenge, i.e. the endpoint <code>https://challenge.intigriti.io/2</code>, with the fragment <code>arbitrary</code>.</p>
+<p>However, the endpoint of the later XHR is specified via a relative URL. To canonicalize it into an absolute form, the browser needs to strip the last component of the base URL before appending the given relative URL to arrive at the final form. In this case, the last path component is <code>foo</code>, so the final absolute form of the XHR URL becomes <code>https://challenge.intigriti.io/2/;/arbitrary</code>.</p>
+<p>This is exactly what we need—we can now set an arbitrary fragment (and therefore assign an arbitrary value to <code>b64img</code>) while still having the URL resolve to the challenge.</p>
+<p>Minding the point of insertion, we construct a simple payload that executes our XSS while still leaving behind well-formed HTML:</p>
+<pre><code>foo&quot;&gt;&lt;img src=&quot;/&quot; onerror=&quot;alert(document.domain);&quot;&gt;&lt;hr id=&quot;foo</code></pre>
+<p>Encoding the payload as base64, it becomes</p>
+<pre><code>Zm9vIj48aW1nIHNyYz0iLyIgb25lcnJvcj0iYWxlcnQoZG9jdW1lbnQuZG9tYWluKTsiPjxociBpZD0iZm9v</code></pre>
+<p>Which we insert into the challenge URL to get the POC</p>
+<pre><code>https://challenge.intigriti.io/2/;/#Zm9vIj48aW1nIHNyYz0iLyIgb25lcnJvcj0iYWxlcnQoZG9jdW1lbnQuZG9tYWluKTsiPjxociBpZD0iZm9v</code></pre>
+<p>A possible explanation of this incorrect behaviour might be the obsolete <a href="https://tools.ietf.org/html/rfc2396">RFC 2396</a> which specifies that each URI path segment may contain semicolon-delimited parameters:</p>
+<pre><code>schema://authority/path;param1;param2?p1=q1&amp;p2=q2
+                       ^^^^^^^^^^^^^^</code></pre>
+</section>
+<section id="remediation" class="level2">
+<h2>Remediation</h2>
+<p>If inserting user content into the page, it <em>must</em> be properly sanitized and encoded. The server should also be configured not to ignore the semicolon and everything following it in the URL.</p>
+</section>
+<section id="consequences" class="level2">
+<h2>Consequences</h2>
+<p>Execution of arbitrary JavaScript in the context of the page if a user follows a link with a suitable payload in the fragment. The attacker would be able to steal the user’s cookies or other secrets for this page, hijacking his session. He could also redress the UI to further deceive the user.</p>
+</section>
+</section>
+</article>
+</body>
+</html>
+
