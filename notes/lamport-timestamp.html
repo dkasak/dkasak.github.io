@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta http-equiv="Access-Control-Allowed-Origin" content="raw.githubusercontent.com">
+  <meta name="author" content="Denis Kasak">
+  <meta name="dcterms.date" content="2019-11-28">
+  <meta name="keywords" content="distributed systems, algorithms, causality, partial ordering">
+  <title>Lamport timestamps</title>
+  <link rel="stylesheet" href="/home/dkasak/.local/share/note-tools/tufte.css">
+  <link rel="stylesheet" href="/home/dkasak/.local/share/note-tools/tufte-extra.css">
+  <link rel="stylesheet" href="/home/dkasak/.local/share/note-tools/pandoc.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-AMS_CHTML-full" type="text/javascript"></script>
+  <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<article>
+<header>
+<h1 class="title">Lamport timestamps</h1>
+<div id="keywords">
+<span class="keyword">#distributed systems </span><span class="keyword">#algorithms </span><span class="keyword">#causality </span><span class="keyword">#partial ordering </span>
+</div>
+<p class="byline">2019-11-28 &ndash; Denis Kasak</p>
+</header>
+
+<section>
+<p>A Lamport timestamp (or a Lamport clock) is a simple and lightweight synchronization algorithm between two independent systems. It provides a partial ordering of events which preserves causality.</p>
+<p>If an event <span class="math inline">\(A\)</span> could have influenced another event <span class="math inline">\(B\)</span> causally, it is said to have <em>happened-before</em> (<span class="math inline">\(A\)</span> <em>happened-before</em> <span class="math inline">\(B\)</span>). For such events, we have the guarantee that the timestamp related to <span class="math inline">\(A\)</span>, that is <span class="math inline">\(C(A)\)</span>, will be less than <span class="math inline">\(C(B)\)</span>, the Lamport timestamp of <span class="math inline">\(B\)</span>.</p>
+<p>That is</p>
+<p><span class="math display">\[
+A \operatorname{happened-before} B \implies C(A) &lt; C(B)
+\]</span></p>
+<p>C.f. vector clocks, a generalization of this method from two to many independent systems.</p>
+</section>
+</article>
+</body>
+</html>
