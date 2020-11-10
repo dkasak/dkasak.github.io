@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="author" content="Denis Kasak">
+  <meta name="dcterms.date" content="2020-11-03">
+  <meta name="keywords" content="modd, mitmproxy, mitmdump, hot reloading, live reloading">
+  <title>Live reloading multi-module mitmproxy scripts using modd</title>
+  <style type="text/css">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <link rel="stylesheet" href="https://dkasak.github.io/style/tufte.css">
+  <link rel="stylesheet" href="https://dkasak.github.io/style/tufte-extra.css">
+  <link rel="stylesheet" href="https://dkasak.github.io/style/pandoc.css">
+  <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<article>
+<header>
+<h1 class="title">Live reloading multi-module mitmproxy scripts using modd</h1>
+<div id="keywords">
+<span class="keyword">#modd </span><span class="keyword">#mitmproxy </span><span class="keyword">#mitmdump </span><span class="keyword">#hot reloading </span><span class="keyword">#live reloading </span>
+</div>
+<p class="byline">2020-11-03 &ndash; Denis Kasak</p>
+</header>
+
+<section>
+<p>Have you ever written a mitmproxy extension script which got too large for a single file, so you split it into multiple modules, only to realize you have broken mitmproxy’s live reloading functionality? Well, I have, and you might too in the future, so I’m writing this small tutorial on how to make it work.</p>
+<p>For the purposes of this example, let’s assume your script is split into the following file structure:</p>
+<pre><code>main.py
+baz.py
+foo/bar.py</code></pre>
+<p><code>main.py</code> is the main module, used as the entrypoint for the script and passed to mitmproxy using the <code>-s</code> flag<span><label for="sn-0" class="margin-toggle sidenote-number"></label><input type="checkbox" id="sn-0" class="margin-toggle"/><span class="sidenote"><code>mitmproxy -s main.py</code><br />
+<br />
+</span></span>. The other modules are imported and used by the main module.</p>
+<p>In such a situation, mitmproxy will only reload the script upon changes to the <code>main.py</code> file. It will also <em>only</em> reload the main module, so any changes you make to other modules will not be reflected in the running instance.</p>
+<p>To restore our previous live reloading workflow, we need to:</p>
+<ol type="1">
+<li>Explicitly reload the other modules from <code>main.py</code> using <code>importlib.reload</code>.</li>
+<li>Watch for changes to other modules and execute <code>touch main.py</code> when they happen. Let’s solve them in order. It is important to note that any identifiers imported <em>before</em> the <code>importlib.reload</code> call<span><label for="sn-1" class="margin-toggle sidenote-number"></label><input type="checkbox" id="sn-1" class="margin-toggle"/><span class="sidenote">Which includes the module itself. So, if you <code>import foo</code> and then do <code>importlib.reload(foo)</code>, the identifier <code>foo</code> still refers to the <em>old</em> module contents, not the reloaded one. Instead, you’d need to do <code>foo = importlib.reload(foo)</code>.<br />
+<br />
+</span></span><em> will not</em> get updated. Hence, it’s best to first import all your modules at the start of your main module (so you have something to reload), reload them, and then import anything you need as usual.</li>
+</ol>
+<p>In other words, if you had</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="im">import</span> baz</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="im">from</span> foo.bar <span class="im">import</span> quux</span></code></pre></div>
+<p>You’d now do</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="im">import</span> importlib</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a><span class="im">import</span> baz</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a><span class="im">import</span> foo.bar</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a>modules <span class="op">=</span> [baz, foo.bar]</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a><span class="cf">for</span> m <span class="kw">in</span> modules:</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a>    importlib.<span class="bu">reload</span>(m)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a><span class="im">import</span> baz</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a><span class="im">from</span> foo.bar <span class="im">import</span> quux</span></code></pre></div>
+<p>A bit wordy, but it works! If you now change something in <code>baz.py</code> and then <code>touch main.py</code>, the changes you made will be reflected in the running mitmproxy instance.</p>
+<p>This solves problem 1, but what about problem 2? For this, we will be using a small lightweight Go utility called <a href="https://github.com/cortesi/modd">modd</a> designed for this exact purpose.</p>
+<p><a href="https://github.com/cortesi/modd#user-content-install">Install modd</a> and then create a <code>modd.conf</code> file in the root directory of your script:</p>
+<pre><code>**/*.py {
+    prep: touch main.py
+}</code></pre>
+<p>Then simply run <code>modd</code> while inside that directory and it should work: every time you change and save any <code>.py</code> file located in that directory subtree, <code>modd</code> will run <code>touch main.py</code> for you.</p>
+<p>In the future, mitmproxy <a href="https://github.com/mitmproxy/mitmproxy/issues/4253">might add</a> built-in support for this.</p>
+</section>
+</article>
+</body>
+</html>
+
