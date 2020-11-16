@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="generator" content="pandoc">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta http-equiv="Access-Control-Allowed-Origin" content="raw.githubusercontent.com">
 $for(author-meta)$
   <meta name="author" content="$author-meta$">
 $endfor$
@@ -49,7 +50,7 @@ $endif$
 $endif$
 $if(keywords)$
 <div id="keywords">
-$for(keywords)$<span class="keyword">#$keywords$ </span>$endfor$
+$for(keywords)$<span class="keyword">$keywords$ </span>$endfor$
 </div>
 $endif$
 $if(date)$

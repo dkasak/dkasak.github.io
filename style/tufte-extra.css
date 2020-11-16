@@ -1,3 +1,7 @@
+body {
+  background-color: #fffffc;
+}
+
 /* The default x-height for code is slightly too large in side notes */
 .marginnote code, .sidenote code { font-size: 0.9rem; }
 
@@ -13,9 +17,46 @@ code, kbd {
     overflow-wrap: anywhere;
 }
 
+/* XXX: Something is adding `white-space: pre` to code.SourceCode blocks
+ * (pandoc?). This looks wrong in combination with `overflow-wrap: anywhere` so
+ * I'm overriding it. */
+code.sourceCode {
+    white-space: pre-wrap;
+}
+
 pre > code {
     display: block;
     border-radius: 2px;
+}
+
+.danger {
+    color: #f33922;
+}
+
+.warning {
+    color: #dfa934;
+}
+
+div.danger:not(.fullwidth) > p,
+div.warning:not(.fullwidth) > p {
+    width: 50%;
+}
+
+div.danger > p,
+div.warning > p {
+    padding: 0.5rem;
+    border: 0;
+    word-wrap: break-word;
+}
+
+div.danger > p {
+    border-top: 1px solid #fb4934;
+    border-bottom: 1px solid #fb4934;
+}
+
+div.warning > p {
+    border-top: 1px solid #dfa934;
+    border-bottom: 1px solid #dfa934;
 }
 
 dl /* The whole list */
@@ -23,6 +64,11 @@ dl /* The whole list */
     font-size: 1.3rem;
     width: 50%;
     padding-top: 0.5em;
+    margin-top: 0em;
+}
+
+:not(section) > dl {
+    margin-top: 1em;
 }
 
 /* Override tufte.css's font-size for p */
@@ -43,4 +89,9 @@ dd+dt /* 2nd or greater term in the list */
 dd /* A definition */
 {
     margin-bottom: 0.5em;
+    border-width: 0 0 0 1px;
+    border-style: solid;
+    padding-left: 1rem;
+    margin-left: 0.3rem;
+    border-color: #333;
 }
