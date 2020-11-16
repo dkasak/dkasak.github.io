@@ -94,14 +94,3 @@ pre:not(.sourceCode) code {
 .fullwidth > figure {
     max-width: 100%;
 }
-
-/* Keyword styling */
-div#keywords {
-    width: 55%;
-    font-size: 1.2em;
-    margin-top: 1.2em;
-}
-
-.keyword {
-  padding-right: 0.5em;
-}

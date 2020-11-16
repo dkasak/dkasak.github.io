@@ -95,3 +95,18 @@ dd /* A definition */
     margin-left: 0.3rem;
     border-color: #333;
 }
+
+/* Keyword styling */
+div#keywords {
+    width: 55%;
+    font-size: 1.2em;
+    margin-top: 1.2em;
+    line-height: 2rem;
+}
+
+.keyword {
+  background-color: #f9f4e2;
+  padding: 1px 4px 1px 4px;
+  margin: 0.9%;
+  border-radius: 6px;
+}
