@@ -2,6 +2,10 @@ body {
   background-color: #fffffc;
 }
 
+.marginnote, .sidenote {
+    font-weight: normal;
+}
+
 /* The default x-height for code is slightly too large in side notes */
 .marginnote code, .sidenote code { font-size: 0.9rem; }
 
@@ -109,4 +113,46 @@ div#keywords {
   padding: 1px 4px 1px 4px;
   margin: 0.9%;
   border-radius: 6px;
+}
+
+h4 {
+    font-weight: 600;
+    font-size: 1.4rem;
+    line-height: 1;
+    font-variant-caps: petite-caps;
+}
+
+/* This is to properly size lists inside blockquotes. See equivalent section
+ * rules in tufte.css */
+blockquote > dl,
+blockquote > ol,
+blockquote > ul {
+    width: 50%;
+    -webkit-padding-start: 5%;
+}
+
+@media (max-width: 760px) {
+    blockquote > dl,
+    blockquote > ol,
+    blockquote > ul {
+        width: 90%;
+    }
+}
+
+/* Underline linkified inline code blocks.
+ *
+ * Since underline is implemented using gradient trickery, code blocks trample
+ * over the underline by setting a background colour themselves. Since I prefer
+ * to retain the underline (so that it is obvious that a link is a link), we
+ * remove the special background colour of linkified code blocks.
+ *
+ * It's a trade-off.
+ */
+a > code {
+    background-color: unset;
+}
+
+/* For poetry, postal addresses, etc. */
+.line-block {
+    font-size: larger
 }
